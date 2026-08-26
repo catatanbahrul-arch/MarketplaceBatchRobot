@@ -1,6 +1,10 @@
 package com.marketplacebatch
 
 import android.app.AlertDialog
+import android.webkit.WebResourceRequest
+import android.net.Uri
+import android.content.Intent
+import android.content.ActivityNotFoundException
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -99,6 +103,23 @@ class AccountBrowserActivity : ComponentActivity() {
             cm.setAcceptThirdPartyCookies(this, true)
 
             webViewClient = object : WebViewClient() {
+
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean {
+                    val url = request?.url?.toString() ?: return false
+                    return handleFacebookNavigation(view, url)
+                }
+
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    url: String?
+                ): Boolean {
+                    return handleFacebookNavigation(view, url ?: return false)
+                }
+
                 override fun onPageFinished(
                     view: WebView?,
                     url: String?
@@ -122,6 +143,27 @@ class AccountBrowserActivity : ComponentActivity() {
 
         webView.loadUrl("https://www.facebook.com/")
         updateStatus()
+    }
+
+    private fun handleFacebookNavigation(
+        view: WebView?,
+        url: String
+    ): Boolean {
+        val lower = url.lowercase()
+
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            return false
+        }
+
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(intent)
+            true
+        } catch (_: ActivityNotFoundException) {
+            true
+        } catch (_: Exception) {
+            true
+        }
     }
 
     private fun cookieText(): String {
