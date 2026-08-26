@@ -19,7 +19,7 @@ class MainActivity:ComponentActivity(){
         root.addView(Button(this).apply{text="📝 TEMPLATE";setOnClickListener{template()}})
         root.addView(Button(this).apply{text="▶ MULAI BATCH";setOnClickListener{startBatch()}})
         root.addView(Button(this).apply{text="⏹ STOP";setOnClickListener{stopBatch()}})
-        root.addView(Button(this).apply{text="♿ ACCESSIBILITY";setOnClickListener{startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}})
+        root.addView(Button(this).apply{text="🌐 BROWSER LOGIN FACEBOOK";setOnClickListener{startActivityForResult(Intent(this@MainActivity, AccountBrowserActivity::class.java),900)}})
         root.addView(Button(this).apply{text="🧪 DRY RUN ON/OFF";setOnClickListener{db.setSetting("dry_run",if(db.setting("dry_run","1")=="1")"0" else "1");refresh()}})
         root.addView(Button(this).apply{text="🔋 BATERAI";setOnClickListener{startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))}})
         setContentView(root);refresh()
@@ -32,11 +32,12 @@ class MainActivity:ComponentActivity(){
         val a=db.accounts();android.app.AlertDialog.Builder(this).setTitle("Urutan akun").setItems(a.map{"${it.position+1}. ${it.displayName} • ${it.packageName}"}.toTypedArray(),null).setPositiveButton("Tambah"){_,_->addAccount()}.setNegativeButton("Tutup",null).show()
     }
     private fun addAccount(){
-        val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
-        val id=EditText(this).apply{hint="ID akun"};val name=EditText(this).apply{hint="Nama akun"};val pkg=EditText(this).apply{hint="Package Facebook instance";setText("com.facebook.katana")}
-        box.addView(id);box.addView(name);box.addView(pkg)
-        android.app.AlertDialog.Builder(this).setTitle("Tambah akun").setView(box).setPositiveButton("Simpan"){_,_->if(id.text.isNotBlank())db.upsertAccount(id.text.toString().trim(),if(name.text.isBlank())id.text.toString().trim() else name.text.toString().trim(),pkg.text.toString().trim(),db.accounts().size);refresh()}.setNegativeButton("Batal",null).show()
+        startActivityForResult(
+            Intent(this, AccountBrowserActivity::class.java),
+            900
+        )
     }
+
     private fun template(){
         val input=EditText(this).apply{setText(db.setting("template"));minLines=5}
         android.app.AlertDialog.Builder(this).setTitle("Template").setMessage("Gunakan {{whatsapp}} untuk link WhatsApp.").setView(input).setPositiveButton("Simpan"){_,_->db.setSetting("template",input.text.toString());refresh()}.setNegativeButton("Batal",null).show()

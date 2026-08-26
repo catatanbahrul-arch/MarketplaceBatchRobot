@@ -38,7 +38,7 @@ class RobotDb(context: Context):SQLiteOpenHelper(context,"marketplace_batch_robo
         d.forEach{(k,v)->db.execSQL("INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)",arrayOf(k,v))}
     }
     fun accounts():List<BatchAccount> =readableDatabase.rawQuery("SELECT id,name,package_name,enabled,position FROM accounts ORDER BY position,id",null).use{c->buildList{while(c.moveToNext())add(BatchAccount(c.getString(0),c.getString(1),c.getString(2),c.getInt(3)==1,c.getInt(4)))}}
-    fun upsertAccount(id:String,name:String,packageName:String,position:Int){writableDatabase.execSQL("INSERT INTO accounts(id,name,package_name,enabled,position) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,package_name=excluded.package_name,position=excluded.position",arrayOf(id,name,packageName,1,position))}
+    fun upsertAccount(id:String,name:String,packageName:String,position:Int){writableDatabase.execSQL("INSERT OR REPLACE INTO accounts(id,name,package_name,enabled,position) VALUES(?,?,?,?,?)",arrayOf(id,name,packageName,1,position))}
     fun setAccountEnabled(id:String,enabled:Boolean){writableDatabase.execSQL("UPDATE accounts SET enabled=? WHERE id=?",arrayOf(if(enabled)1 else 0,id))}
     fun setSetting(key:String,value:String){writableDatabase.execSQL("INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)",arrayOf(key,value))}
     fun setting(key:String,default:String="")=readableDatabase.rawQuery("SELECT value FROM settings WHERE key=?",arrayOf(key)).use{if(it.moveToFirst())it.getString(0) else default}
