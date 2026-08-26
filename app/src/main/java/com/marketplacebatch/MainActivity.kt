@@ -35,7 +35,7 @@ class MainActivity:ComponentActivity(){
         val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
         val id=EditText(this).apply{hint="ID akun"};val name=EditText(this).apply{hint="Nama akun"};val pkg=EditText(this).apply{hint="Package Facebook instance";setText("com.facebook.katana")}
         box.addView(id);box.addView(name);box.addView(pkg)
-        android.app.AlertDialog.Builder(this).setTitle("Tambah akun").setView(box).setPositiveButton("Simpan"){_,_->if(id.text.isNotBlank())db.upsertAccount(id.text.toString().trim(),if(name.text.isBlank())id.text.toString().trim() else name.text.toString().trim(),pkg.text.toString().trim(),db.accounts().size)}.setNegativeButton("Batal",null).show()
+        android.app.AlertDialog.Builder(this).setTitle("Tambah akun").setView(box).setPositiveButton("Simpan"){_,_->if(id.text.isNotBlank())db.upsertAccount(id.text.toString().trim(),if(name.text.isBlank())id.text.toString().trim() else name.text.toString().trim(),pkg.text.toString().trim(),db.accounts().size);refresh()}.setNegativeButton("Batal",null).show()
     }
     private fun template(){
         val input=EditText(this).apply{setText(db.setting("template"));minLines=5}
