@@ -1,0 +1,24 @@
+# Release Checklist
+
+- [ ] Open project in Android Studio
+- [ ] Install Android SDK 35
+- [ ] Generate standard Gradle wrapper if `gradle-wrapper.jar` is missing
+- [ ] `assembleDebug` succeeds
+- [ ] APK exists under `app/build/outputs/apk/debug/`
+- [ ] Install APK on dedicated phone
+- [ ] Enable Accessibility Service
+- [ ] Keep Robot OFF + Dry Run ON
+- [ ] Manually log into each supported Facebook/Messenger instance
+- [ ] Add each account slot/package name in order
+- [ ] Test one account
+- [ ] Test sender identity
+- [ ] Test Marketplace detection
+- [ ] Test list sweep/open conversation/back navigation
+- [ ] Test one-reply reservation
+- [ ] Test duplicate prevention
+- [ ] Test cooldown and max-per-account limit
+- [ ] Test missing package/account skip
+- [ ] Test login/CAPTCHA skip
+- [ ] Test account-to-account transition
+- [ ] Test final COMPLETE -> OFF
+- [ ] Only then turn Dry Run OFF

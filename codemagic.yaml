@@ -1,0 +1,24 @@
+workflows:
+  android-debug:
+    name: MarketplaceBatchRobot Android Debug
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    scripts:
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+
+      - name: Verify project sources
+        script: |
+          test -f app/src/main/java/com/marketplacebatch/BatchState.kt
+          test -f app/src/main/java/com/marketplacebatch/MarketplaceBatchAccessibilityService.kt
+          test -f app/src/main/java/com/marketplacebatch/BatchCoordinator.kt
+
+      - name: Build Android APK
+        script: |
+          gradle --version
+          gradle clean assembleDebug --console=plain
+
+    artifacts:
+      - app/build/outputs/**/*.apk
