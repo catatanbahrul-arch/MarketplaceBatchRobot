@@ -21,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import org.json.JSONObject
 
 class AccountBrowserActivity : ComponentActivity() {
 
@@ -52,7 +53,7 @@ class AccountBrowserActivity : ComponentActivity() {
         }
 
         status = TextView(this).apply {
-            text = "Browser Facebook • memeriksa login..."
+            text = "Browser Facebook • menyiapkan sesi..."
             textSize = 14f
             setTextColor(Color.DKGRAY)
             layoutParams = LinearLayout.LayoutParams(
@@ -141,8 +142,73 @@ class AccountBrowserActivity : ComponentActivity() {
 
         setContentView(root)
 
-        webView.loadUrl("https://www.facebook.com/")
-        updateStatus()
+        prepareSessionAndLoad()
+    }
+
+    private fun prepareSessionAndLoad() {
+        val cm = CookieManager.getInstance()
+        val accountId = intent.getStringExtra("account_id")
+
+        status.text = if (accountId == null) {
+            "Browser Facebook • sesi baru..."
+        } else {
+            "Browser Facebook • memulihkan akun..."
+        }
+
+        cm.removeAllCookies {
+            handler.post {
+                if (!accountId.isNullOrBlank()) {
+                    restoreSession(db.accountSessionCookie(accountId))
+                }
+                cm.flush()
+                webView.loadUrl("https://www.facebook.com/")
+                updateStatus()
+            }
+        }
+    }
+
+    private fun restoreSession(saved: String) {
+        if (saved.isBlank()) return
+
+        try {
+            val json = JSONObject(saved)
+            val keys = json.keys()
+
+            while (keys.hasNext()) {
+                val origin = keys.next()
+                val cookieText = json.optString(origin, "")
+
+                if (cookieText.isBlank()) continue
+
+                cookieText
+                    .split("; ")
+                    .filter { it.contains("=") }
+                    .forEach { cookie ->
+                        try {
+                            CookieManager.getInstance().setCookie(origin, cookie)
+                        } catch (_: Exception) {
+                        }
+                    }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun captureSession(): String {
+        val json = JSONObject()
+        val cm = CookieManager.getInstance()
+
+        facebookOrigins.forEach { origin ->
+            try {
+                val cookies = cm.getCookie(origin)
+                if (!cookies.isNullOrBlank()) {
+                    json.put(origin, cookies)
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        return json.toString()
     }
 
     private fun handleFacebookNavigation(
@@ -257,6 +323,11 @@ class AccountBrowserActivity : ComponentActivity() {
                     name = alias,
                     packageName = "internal-webview",
                     position = position
+                )
+
+                db.setAccountSessionCookie(
+                    id = id,
+                    cookie = captureSession()
                 )
 
                 Toast.makeText(

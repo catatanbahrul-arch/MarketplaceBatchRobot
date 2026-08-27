@@ -5,7 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class RobotDb(context: Context):SQLiteOpenHelper(context,"marketplace_batch_robot.db",null,3){
+class RobotDb(context: Context):SQLiteOpenHelper(context,"marketplace_batch_robot.db",null,4){
     override fun onCreate(db:SQLiteDatabase){
         schema(db)
         defaults(db)
@@ -13,10 +13,11 @@ class RobotDb(context: Context):SQLiteOpenHelper(context,"marketplace_batch_robo
     override fun onUpgrade(db:SQLiteDatabase,oldVersion:Int,newVersion:Int){
         if(oldVersion<2){ try{db.execSQL("ALTER TABLE senders ADD COLUMN reserved_at INTEGER")}catch(_:Exception){} }
         if(oldVersion<3){ try{db.execSQL("ALTER TABLE accounts ADD COLUMN position INTEGER NOT NULL DEFAULT 0")}catch(_:Exception){} }
+        if(oldVersion<4){ try{db.execSQL("ALTER TABLE accounts ADD COLUMN session_cookie TEXT NOT NULL DEFAULT ''")}catch(_:Exception){} }
         schemaIndexes(db)
     }
     private fun schema(db:SQLiteDatabase){
-        db.execSQL("CREATE TABLE IF NOT EXISTS accounts(id TEXT PRIMARY KEY,name TEXT NOT NULL,package_name TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1,position INTEGER NOT NULL DEFAULT 0)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS accounts(id TEXT PRIMARY KEY,name TEXT NOT NULL,package_name TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 1,position INTEGER NOT NULL DEFAULT 0,session_cookie TEXT NOT NULL DEFAULT '')")
         db.execSQL("CREATE TABLE IF NOT EXISTS senders(account_id TEXT NOT NULL,sender_key TEXT NOT NULL,replied_at INTEGER,reserved_at INTEGER,message_count INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(account_id,sender_key))")
         db.execSQL("CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,account_id TEXT NOT NULL,sender_key TEXT NOT NULL,type TEXT NOT NULL,payload TEXT NOT NULL,created_at INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL)")
@@ -37,11 +38,13 @@ class RobotDb(context: Context):SQLiteOpenHelper(context,"marketplace_batch_robo
         )
         d.forEach{(k,v)->db.execSQL("INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)",arrayOf(k,v))}
     }
-    fun accounts():List<BatchAccount> =readableDatabase.rawQuery("SELECT id,name,package_name,enabled,position FROM accounts ORDER BY position,id",null).use{c->buildList{while(c.moveToNext())add(BatchAccount(c.getString(0),c.getString(1),c.getString(2),c.getInt(3)==1,c.getInt(4)))}}
-    fun upsertAccount(id:String,name:String,packageName:String,position:Int){writableDatabase.execSQL("INSERT OR REPLACE INTO accounts(id,name,package_name,enabled,position) VALUES(?,?,?,?,?)",arrayOf(id,name,packageName,1,position))}
+    fun accounts():List<BatchAccount> =readableDatabase.rawQuery("SELECT id,name,package_name,enabled,position FROM accounts ORDER BY position,id",null).use{c->buildList{while(c.moveToNext())add(BatchAccount(c.getString(0),c.getString(1),c.getString(2),c.getInt(3)==1,c.getInt(4)))}}}
+    fun upsertAccount(id:String,name:String,packageName:String,position:Int){writableDatabase.execSQL("INSERT OR REPLACE INTO accounts(id,name,package_name,enabled,position,session_cookie) VALUES(?,?,?,?,?,COALESCE((SELECT session_cookie FROM accounts WHERE id=?),''))",arrayOf(id,name,packageName,1,position,id))}
     fun setAccountEnabled(id:String,enabled:Boolean){writableDatabase.execSQL("UPDATE accounts SET enabled=? WHERE id=?",arrayOf(if(enabled)1 else 0,id))}
+    fun setAccountSessionCookie(id:String,cookie:String){writableDatabase.execSQL("UPDATE accounts SET session_cookie=? WHERE id=?",arrayOf(cookie,id))}
+    fun accountSessionCookie(id:String):String=readableDatabase.rawQuery("SELECT session_cookie FROM accounts WHERE id=?",arrayOf(id)).use{if(it.moveToFirst())it.getString(0) else ""}}
     fun setSetting(key:String,value:String){writableDatabase.execSQL("INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)",arrayOf(key,value))}
-    fun setting(key:String,default:String="")=readableDatabase.rawQuery("SELECT value FROM settings WHERE key=?",arrayOf(key)).use{if(it.moveToFirst())it.getString(0) else default}
+    fun setting(key:String,default:String="")=readableDatabase.rawQuery("SELECT value FROM settings WHERE key=?",arrayOf(key)).use{if(it.moveToFirst())it.getString(0) else default}}
     fun reserveReply(accountId:String,sender:String):Boolean{
         val db=writableDatabase
         db.beginTransaction()
